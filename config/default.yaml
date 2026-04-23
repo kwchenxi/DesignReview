@@ -1,0 +1,50 @@
+# Design Review 配置文件
+
+figma:
+  # Figma Personal Access Token (也可通过环境变量 FIGMA_ACCESS_TOKEN 设置)
+  token: ""
+
+tolerance:
+  # 数值类容差 (px)
+  defaultNumeric: 2
+  width: 2
+  height: 2
+  fontSize: 1
+  fontWeight: 0
+  lineHeight: 2
+  letterSpacing: 0.5
+  padding: 2
+  gap: 2
+  borderRadius: 2
+  borderWidth: 1
+  opacity: 0.05
+  # 位置偏移
+  positionOffset: 4
+
+  # 颜色容差 (ΔE CIE2000)
+  colorDeltaE: 3.0
+
+  # 像素对比
+  pixelMatchThreshold: 0.1
+  antialiasingTolerance: 0.1
+
+output:
+  # 输出目录
+  dir: "./output"
+  # 导出格式 (可多选: markdown, html, pdf, csv)
+  formats:
+    - html
+    - markdown
+  # 截图缩放倍率
+  screenshotScale: 2
+
+capture:
+  # 视口宽度
+  viewportWidth: 1440
+  viewportHeight: 900
+  # 截图等待时间 (ms)
+  waitBeforeCapture: 2000
+  # 需要捕获的交互状态
+  interactionStates:
+    - hover
+    - focus

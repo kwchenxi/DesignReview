@@ -1,0 +1,46 @@
+{
+  "name": "design-review",
+  "version": "0.1.0",
+  "description": "自动化设计还原度检查工具 - 对比线上页面与Figma设计稿",
+  "main": "dist/index.js",
+  "bin": {
+    "design-review": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/cli.ts",
+    "start": "node dist/cli.js",
+    "review": "ts-node src/cli.ts",
+    "web": "ts-node src/web/server.ts",
+    "start": "ts-node src/web/server.ts"
+  },
+  "keywords": [
+    "design-review",
+    "figma",
+    "visual-diff"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.1.0",
+    "colorjs.io": "^0.4.5",
+    "commander": "^12.0.0",
+    "consola": "^3.2.0",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "multer": "^1.4.5-lts.1",
+    "pixelmatch": "^5.3.0",
+    "pngjs": "^7.0.0",
+    "puppeteer": "^22.0.0",
+    "yaml": "^2.3.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/pixelmatch": "^5.2.6",
+    "@types/pngjs": "^6.0.5",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.3.0"
+  }
+}
