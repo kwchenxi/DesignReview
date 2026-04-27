@@ -29,6 +29,10 @@ export interface AIAnalysisResult {
   overallScore: number;
   summary: string;
   rawResponse: string;
+  /** 像素对比差异图路径 */
+  diffImagePath?: string;
+  /** 像素对比相似度 */
+  pixelSimilarity?: number;
 }
 
 // ============================================================
@@ -106,7 +110,7 @@ export class AIAnalyzer {
     // Step 4: 解析 AI 响应为结构化问题
     const { issues, overallScore, summary } = this.parseAIResponse(rawResponse, pixelResult);
 
-    return { issues, overallScore, summary, rawResponse };
+    return { issues, overallScore, summary, rawResponse, diffImagePath: pixelResult?.diffImagePath, pixelSimilarity: pixelResult?.similarity };
   }
 
   /**

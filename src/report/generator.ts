@@ -168,22 +168,28 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
   <title>设计还原度检查报告</title>
   <style>
     :root {
-      --bg: #0f172a;
-      --surface: #1e293b;
-      --surface-hover: #334155;
-      --border: #334155;
-      --text: #f1f5f9;
-      --text-secondary: #94a3b8;
-      --accent: #6366f1;
-      --critical: #ef4444;
-      --major: #f97316;
-      --minor: #eab308;
-      --suggestion: #22c55e;
+      --bg: #E8ECF0;
+      --surface: rgba(255,255,255,.45);
+      --surface-hover: rgba(255,255,255,.58);
+      --border: rgba(255,255,255,.7);
+      --text: #1a1a2e;
+      --text-secondary: #5a6478;
+      --accent: #0C7FFC;
+      --critical: #E54D4D;
+      --major: #E88A3A;
+      --minor: #C9A020;
+      --suggestion: #4DB87A;
+      --glass-blur: blur(32px) saturate(1.4);
+      --glass-shadow: inset 0 1px 0 rgba(255,255,255,.8), 0 4px 24px rgba(0,0,0,.06);
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: #E8ECF0;
+      background-image:
+        radial-gradient(ellipse 80% 60% at 20% 30%, rgba(12,127,252,.15) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 70%, rgba(12,127,252,.08) 0%, transparent 60%);
+      background-attachment: fixed;
       color: var(--text);
       line-height: 1.6;
     }
@@ -196,9 +202,12 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
       gap: 32px;
       margin-bottom: 40px;
       background: var(--surface);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
       padding: 32px;
-      border-radius: 16px;
+      border-radius: 28px;
       border: 1px solid var(--border);
+      box-shadow: var(--glass-shadow);
     }
     .score-ring {
       width: 110px; height: 110px;
@@ -209,19 +218,24 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
       color: ${scoreColor};
       border: 4px solid ${scoreColor};
       flex-shrink: 0;
+      background: rgba(255,255,255,.3);
+      backdrop-filter: blur(16px);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
     }
     .score-ring .score-label { font-size: 14px; font-weight: 400; color: var(--text-secondary); }
     .meta-info h1 { font-size: 24px; margin-bottom: 4px; }
     .meta-info p { color: var(--text-secondary); font-size: 14px; }
+    .meta-info a { color: var(--accent); }
     .score-desc {
       display: inline-block;
       margin-top: 8px;
-      padding: 4px 12px;
+      padding: 4px 14px;
       border-radius: 20px;
       font-size: 13px;
       font-weight: 600;
-      background: rgba(99,102,241,0.15);
+      background: rgba(12,127,252,.1);
       color: var(--accent);
+      border: 1px solid rgba(12,127,252,.2);
     }
 
     /* 统计卡片 */
@@ -229,10 +243,13 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
     .stat-card {
       flex: 1;
       background: var(--surface);
-      border-radius: 10px;
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 20px;
       padding: 16px 20px;
       border: 1px solid var(--border);
       text-align: center;
+      box-shadow: var(--glass-shadow);
     }
     .stat-card .stat-value { font-size: 28px; font-weight: 700; }
     .stat-card .stat-label { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
@@ -244,10 +261,13 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
     /* ============ 可视化对比区 ============ */
     .visual-section {
       background: var(--surface);
-      border-radius: 16px;
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 28px;
       padding: 24px;
       margin-bottom: 32px;
       border: 1px solid var(--border);
+      box-shadow: var(--glass-shadow);
     }
     .visual-header {
       display: flex;
@@ -261,8 +281,9 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
       border-radius: 20px;
       font-size: 14px;
       font-weight: 600;
-      background: rgba(99,102,241,0.15);
+      background: rgba(12,127,252,.1);
       color: var(--accent);
+      border: 1px solid rgba(12,127,252,.2);
     }
     .similarity-desc {
       color: var(--text-secondary);
@@ -275,13 +296,13 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
       display: flex;
       gap: 4px;
       margin-bottom: 16px;
-      background: var(--bg);
-      border-radius: 8px;
+      background: rgba(255,255,255,.3);
+      border-radius: 14px;
       padding: 4px;
     }
     .view-tab {
       padding: 8px 16px;
-      border-radius: 6px;
+      border-radius: 10px;
       font-size: 13px;
       cursor: pointer;
       border: none;
@@ -290,11 +311,12 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
       transition: all 0.2s;
     }
     .view-tab.active {
-      background: var(--accent);
+      background: #0C7FFC;
       color: white;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 2px 8px rgba(12,127,252,.25);
     }
     .view-tab:hover:not(.active) {
-      background: var(--surface-hover);
+      background: rgba(255,255,255,.4);
       color: var(--text);
     }
 
@@ -302,9 +324,9 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
     .compare-container {
       position: relative;
       width: 100%;
-      border-radius: 12px;
+      border-radius: 18px;
       overflow: hidden;
-      background: #1a1a2e;
+      background: rgba(200,210,220,.3);
       margin-bottom: 16px;
     }
 
@@ -349,7 +371,7 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
       display: flex; align-items: center; justify-content: center;
       font-size: 16px;
       z-index: 11;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      box-shadow: 0 2px 12px rgba(0,0,0,.15);
       pointer-events: none;
     }
     .compare-slider .label-left,
@@ -357,14 +379,15 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
       position: absolute;
       top: 12px;
       padding: 4px 12px;
-      border-radius: 6px;
+      border-radius: 10px;
       font-size: 12px;
       font-weight: 600;
       z-index: 5;
       pointer-events: none;
+      backdrop-filter: blur(8px);
     }
-    .compare-slider .label-left { left: 12px; background: rgba(99,102,241,0.8); color: white; }
-    .compare-slider .label-right { right: 12px; background: rgba(239,68,68,0.8); color: white; }
+    .compare-slider .label-left { left: 12px; background: rgba(12,127,252,.7); color: white; }
+    .compare-slider .label-right { right: 12px; background: rgba(229,77,77,.7); color: white; }
 
     /* 并排对比 */
     .compare-side {
@@ -374,13 +397,13 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
     }
     .compare-side.active { display: grid; }
     .compare-side .side-item { text-align: center; }
-    .compare-side .side-item img { width: 100%; border-radius: 8px; }
+    .compare-side .side-item img { width: 100%; border-radius: 14px; }
     .compare-side .side-label {
       margin-top: 8px;
       font-size: 13px;
       font-weight: 600;
       padding: 4px 12px;
-      border-radius: 6px;
+      border-radius: 10px;
       display: inline-block;
     }
 
@@ -391,17 +414,20 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
     .compare-diff.active { display: block; }
     .compare-diff img {
       width: 100%;
-      border-radius: 8px;
+      border-radius: 14px;
     }
 
     /* ============ 问题清单 ============ */
     .issues-section h2 { margin-bottom: 16px; }
     .module-card {
       background: var(--surface);
-      border-radius: 10px;
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 24px;
       padding: 24px;
       margin-bottom: 16px;
       border: 1px solid var(--border);
+      box-shadow: var(--glass-shadow);
     }
     .module-header {
       display: flex;
@@ -419,14 +445,15 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
     .issue-table th {
       text-align: left;
       padding: 10px 12px;
-      background: var(--bg);
+      background: rgba(200,210,220,.25);
       color: var(--text-secondary);
       font-weight: 500;
       font-size: 12px;
+      border-radius: 8px;
     }
     .issue-table td {
       padding: 10px 12px;
-      border-top: 1px solid var(--border);
+      border-top: 1px solid rgba(255,255,255,.4);
     }
     .issue-row.critical { border-left: 3px solid var(--critical); }
     .issue-row.major { border-left: 3px solid var(--major); }
@@ -440,17 +467,17 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
     td.expected { color: var(--suggestion); }
     td.actual { color: var(--critical); }
     td.suggestion { color: var(--text-secondary); }
-    
-    /* 新增样式 */
+
     .issue-title { font-weight: 600; }
     .issue-location { font-size: 12px; color: var(--text-secondary); }
-    .issue-details-row { background: rgba(0, 0, 0, 0.05); }
+    .issue-details-row { background: rgba(200,210,220,.15); }
     .issue-details {
       padding: 12px;
-      background: rgba(30, 41, 59, 0.5);
-      border-radius: 6px;
+      background: rgba(255,255,255,.3);
+      border-radius: 12px;
       margin: 8px 0;
       border-left: 3px solid var(--border);
+      backdrop-filter: blur(8px);
     }
     .issue-details .detail-item {
       margin-bottom: 8px;
