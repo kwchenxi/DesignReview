@@ -22,9 +22,14 @@ function buildMeta(
   figmaUrl: string,
   diffResult: DiffResult
 ): ReportMeta {
+  // 判断是否为本地文件路径
+  const isFile = (p: string) => p && !p.startsWith('http') && fs.existsSync(p);
+
   return {
     pageUrl,
     figmaUrl,
+    pageScreenshot: isFile(pageUrl) ? pageUrl : undefined,
+    figmaScreenshot: isFile(figmaUrl) ? figmaUrl : undefined,
     timestamp: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }),
     overallScore: diffResult.overallScore,
     totalIssues: diffResult.totalIssues,
@@ -73,27 +78,63 @@ function describeScore(score: number): string {
 // HTML 报告 (可视化交互版)
 // ============================================================
 
-function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffResult['pixelDiff']): string {
+function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffResult['pixelDiff'], outputDir = './output'): string {
   const scoreColor = meta.overallScore >= 90 ? '#22c55e' : meta.overallScore >= 70 ? '#f59e0b' : '#ef4444';
   const scoreDesc = describeScore(meta.overallScore);
   const similarityDesc = pixelDiff.similarity > 0 ? describeSimilarity(pixelDiff.similarity) : '';
 
   // 把截图图片转为 base64 内嵌 (确保报告自包含)
-  const figmaScreenshotB64 = imagePathToBase64(path.join(path.dirname(pixelDiff.diffImagePath || ''), 'figma-screenshot.png'));
-  const pageScreenshotB64 = imagePathToBase64(pixelDiff.diffImagePath ? findPageScreenshot(pixelDiff.diffImagePath) : '');
+  // 优先从 outputDir 直接查找，再从 diffImagePath 推导，最后尝试 meta 中的路径
+  const diffDir = pixelDiff.diffImagePath ? path.dirname(pixelDiff.diffImagePath) : '';
+  const figmaScreenshotB64 = (diffDir && imagePathToBase64(path.join(diffDir, 'figma-screenshot.png')))
+    || imagePathToBase64(path.join(outputDir, 'figma-screenshot.png'))
+    || imagePathToBase64(path.join(outputDir, 'figma-rendered.png'))
+    || imagePathToBase64(meta.figmaScreenshot || '')
+    || imagePathToBase64(meta.figmaUrl);
+  const pageScreenshotB64 = (diffDir && imagePathToBase64(findPageScreenshot(pixelDiff.diffImagePath)))
+    || imagePathToBase64(path.join(outputDir, 'page-full.png'))
+    || imagePathToBase64(meta.pageScreenshot || '')
+    || imagePathToBase64(meta.pageUrl);
   const diffImageB64 = imagePathToBase64(pixelDiff.diffImagePath);
 
   const moduleCards = modules.map((mod, idx) => {
-    const issueRows = mod.issues.map(issue => `
-      <tr class="issue-row ${issue.level}">
+    const issueRows = mod.issues.map(issue => {
+      // 使用增强字段或回退到基本字段
+      const title = issue.title || issue.property;
+      const location = issue.location || mod.name || '未知位置';
+      const observed = issue.observed || issue.actual;
+      const impact = issue.impact || '';
+      const recommendation = issue.recommendation || issue.suggestion;
+      
+      // 是否显示详细信息（如果有impact或详细描述）
+      const hasDetails = impact || (issue.observed && issue.observed !== issue.actual);
+      const detailsId = `details-${mod.name.replace(/\s+/g, '-')}-${idx}-${issue.id}`;
+      
+      return `
+      <tr class="issue-row ${issue.level}" ${hasDetails ? `onclick="toggleDetails('${detailsId}')" style="cursor: pointer;"` : ''}>
         <td><span class="level-badge ${issue.level}">${LEVEL_ICON[issue.level]} ${LEVEL_LABEL[issue.level]}</span></td>
+        <td class="issue-title">${title}</td>
+        <td class="issue-location">${location}</td>
         <td>${CATEGORY_LABEL[issue.category] || issue.category}</td>
-        <td class="issue-property">${issue.property}</td>
         <td class="expected">${issue.expected}</td>
-        <td class="actual">${issue.actual}</td>
-        <td class="suggestion">${issue.suggestion}</td>
+        <td class="actual">${observed}</td>
+        <td class="suggestion">${recommendation}</td>
       </tr>
-    `).join('');
+      ${hasDetails ? `
+      <tr class="issue-details-row" id="${detailsId}" style="display: none;">
+        <td colspan="7">
+          <div class="issue-details">
+            ${impact ? `<div class="detail-item"><strong>影响分析:</strong> ${impact}</div>` : ''}
+            ${issue.observed && issue.observed !== issue.actual ? `<div class="detail-item"><strong>观察描述:</strong> ${issue.observed}</div>` : ''}
+            ${issue.recommendation && issue.recommendation !== issue.suggestion ? `<div class="detail-item"><strong>详细建议:</strong> ${issue.recommendation}</div>` : ''}
+            ${issue.confidence ? `<div class="detail-item"><strong>检测置信度:</strong> ${issue.confidence}%</div>` : ''}
+            ${issue.severity ? `<div class="detail-item"><strong>优先级:</strong> ${issue.severity}</div>` : ''}
+          </div>
+        </td>
+      </tr>
+      ` : ''}
+    `;
+    }).join('');
 
     return `
       <div class="module-card" id="module-${idx}">
@@ -105,10 +146,11 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
           <thead>
             <tr>
               <th>等级</th>
+              <th>问题标题</th>
+              <th>位置</th>
               <th>类别</th>
-              <th>属性</th>
               <th>设计稿</th>
-              <th>线上</th>
+              <th>实现</th>
               <th>修复建议</th>
             </tr>
           </thead>
@@ -398,6 +440,29 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
     td.expected { color: var(--suggestion); }
     td.actual { color: var(--critical); }
     td.suggestion { color: var(--text-secondary); }
+    
+    /* 新增样式 */
+    .issue-title { font-weight: 600; }
+    .issue-location { font-size: 12px; color: var(--text-secondary); }
+    .issue-details-row { background: rgba(0, 0, 0, 0.05); }
+    .issue-details {
+      padding: 12px;
+      background: rgba(30, 41, 59, 0.5);
+      border-radius: 6px;
+      margin: 8px 0;
+      border-left: 3px solid var(--border);
+    }
+    .issue-details .detail-item {
+      margin-bottom: 8px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .issue-details .detail-item strong {
+      color: var(--text-secondary);
+      margin-right: 8px;
+      display: inline-block;
+      min-width: 80px;
+    }
 
     @media (max-width: 768px) {
       .report-header { flex-direction: column; text-align: center; }
@@ -465,20 +530,20 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
           <img class="img-top" src="${pageScreenshotB64 || figmaScreenshotB64 || ''}" alt="线上页面" />
           <div class="slider-line"></div>
           <div class="slider-handle">⇔</div>
-          <span class="label-left">设计稿</span>
-          <span class="label-right">线上页面</span>
+          <span class="label-left">线上页面</span>
+          <span class="label-right">设计稿</span>
         </div>
       </div>
 
       <!-- 并排对比 -->
       <div class="compare-side" id="sideView">
         <div class="side-item">
-          <img src="${figmaScreenshotB64 || ''}" alt="设计稿" />
-          <div class="side-label" style="background: rgba(99,102,241,0.2); color: var(--accent);">设计稿</div>
-        </div>
-        <div class="side-item">
           <img src="${pageScreenshotB64 || figmaScreenshotB64 || ''}" alt="线上页面" />
           <div class="side-label" style="background: rgba(239,68,68,0.2); color: var(--critical);">线上页面</div>
+        </div>
+        <div class="side-item">
+          <img src="${figmaScreenshotB64 || ''}" alt="设计稿" />
+          <div class="side-label" style="background: rgba(99,102,241,0.2); color: var(--accent);">设计稿</div>
         </div>
       </div>
 
@@ -670,7 +735,7 @@ export class ReportGenerator {
     }
 
     if (formats.includes('html')) {
-      const html = generateHtml(meta, modules, pixelDiff);
+      const html = generateHtml(meta, modules, pixelDiff, outputDir);
       const htmlPath = path.join(outputDir, 'design-review-report.html');
       fs.writeFileSync(htmlPath, html, 'utf-8');
       outputFiles.push(htmlPath);

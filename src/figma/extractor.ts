@@ -8,6 +8,7 @@ import {
   NormalizedStyles,
   BoundingBox,
 } from '../types';
+import { FigmaRenderer } from './renderer';
 
 // ---- Figma API 响应类型 (简化版) ----
 
@@ -341,10 +342,14 @@ function traverseAndExtract(node: FigmaNode, path = ''): FigmaComponent[] {
 export class FigmaExtractor {
   /**
    * 从 Figma URL 提取设计数据
+   * @param targetWidth 目标渲染宽度 (CSS 像素)。设置后，Figma 截图会按此宽度对应的 scale 导出
+   * @param outputDir 未使用（保留参数兼容性）
    */
   static async extract(
     figmaUrl: string,
-    token?: string
+    token?: string,
+    targetWidth?: number,
+    _outputDir?: string
   ): Promise<FigmaDesignData> {
     const accessToken = token || process.env.FIGMA_ACCESS_TOKEN;
     if (!accessToken) {
@@ -370,7 +375,6 @@ export class FigmaExtractor {
     // 2. 获取目标节点数据
     let targetNode: FigmaNode;
     if (nodeId) {
-      // 有 nodeId: 只请求该节点, 避免加载整个文件
       const nodesResp = await figmaApi<{ nodes: { [key: string]: { document: FigmaNode } } }>(
         `/files/${fileKey}/nodes?ids=${nodeId}&depth=3`,
         accessToken
@@ -381,7 +385,6 @@ export class FigmaExtractor {
       }
       targetNode = nodeData.document;
     } else {
-      // 没有 nodeId: 用浅深度获取整棵文件树
       const file = await figmaApi<FigmaFileResponse>(
         `/files/${fileKey}?depth=2`,
         accessToken
@@ -398,19 +401,43 @@ export class FigmaExtractor {
     const components = traverseAndExtract(targetNode);
     console.log(`✅ 提取到 ${components.length} 个视觉节点`);
 
-    // 4. 导出截图
+    // 4. 导出截图 — 根据 targetWidth 计算 scale
+    // 注意：Figma API 只支持 scale 参数（等比缩放），不支持按宽度重排 Auto Layout
+    // 详见 src/figma/renderer.ts 中的说明
     const topNodes = nodeId ? [nodeId] : (targetNode.children || []).slice(0, 20).map(c => c.id);
     console.log(`📸 正在导出 ${topNodes.length} 张截图...`);
+
+    let exportScale = 2; // 默认 2x
+    const designWidth = targetNode.absoluteBoundingBox?.width;
+    if (targetWidth && designWidth && designWidth > 0) {
+      exportScale = targetWidth / designWidth;
+      console.log(`📏 设计稿原始宽度: ${designWidth}px, 目标宽度: ${targetWidth}px, 导出 scale: ${exportScale.toFixed(2)}x`);
+    } else if (targetWidth) {
+      exportScale = 1;
+      console.log(`📏 未获取到设计稿宽度，使用 scale=1 导出`);
+    }
 
     let screenshots: Record<string, string> = {};
     try {
       const imageResp = await figmaApi<FigmaImageResponse>(
-        `/images/${fileKey}?ids=${topNodes.join(',')}&format=png&scale=2`,
+        `/images/${fileKey}?ids=${topNodes.join(',')}&format=png&scale=${exportScale}`,
         accessToken
       );
       screenshots = imageResp.images;
     } catch (err) {
-      console.warn('⚠️ 截图导出失败, 将跳过视觉对比:', err);
+      console.warn('⚠️ 截图导出失败:', err);
+    }
+
+    // 降级: 如果 Figma 截图导出失败，尝试本地渲染
+    if (Object.keys(screenshots).length === 0 && _outputDir && targetWidth) {
+      console.log('🎨 尝试本地渲染降级方案...');
+      const renderedPath = await FigmaRenderer.tryRender({ fileName, pageName: targetNode.name, components, screenshots, designWidth }, {
+        width: targetWidth,
+        outputDir: _outputDir,
+      });
+      if (renderedPath) {
+        screenshots = { 'root': renderedPath };
+      }
     }
 
     return {
@@ -418,6 +445,7 @@ export class FigmaExtractor {
       pageName: targetNode.name,
       components,
       screenshots,
+      designWidth,
     };
   }
 }

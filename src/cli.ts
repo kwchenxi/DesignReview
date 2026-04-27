@@ -28,6 +28,10 @@ program
   .option('--format <formats>', '输出格式, 逗号分隔 (html,markdown,csv)', 'html,markdown')
   .option('--viewport-width <width>', '视口宽度', '1440')
   .option('--viewport-height <height>', '视口高度', '900')
+  .option('--ai', '启用 AI 视觉分析 (需设置 AI_API_KEY 环境变量)')
+  .option('--ai-key <apiKey>', 'AI API Key')
+  .option('--ai-base <apiBase>', 'AI API Base URL')
+  .option('--ai-model <model>', 'AI 模型名称')
   .addHelpText('after', `
 示例:
   # 完整模式 (URL + Figma)
@@ -41,6 +45,10 @@ program
 
   # 纯截图对比
   $ design-review check -p ./page.png -g ./design.png
+
+  # 启用 AI 分析
+  $ design-review check -p ./page.png -g ./design.png --ai
+  $ design-review check -p ./page.png -g ./design.png --ai --ai-key sk-xxx --ai-model gpt-4o
 `)
   .action(async (opts) => {
     try {
@@ -55,6 +63,12 @@ program
       }
 
       const formats = opts.format.split(',').map((f: string) => f.trim());
+
+      // AI 配置: CLI 参数 > 环境变量
+      if (opts.aiKey) process.env.AI_API_KEY = opts.aiKey;
+      if (opts.aiBase) process.env.AI_API_BASE = opts.aiBase;
+      if (opts.aiModel) process.env.AI_MODEL = opts.aiModel;
+
       await designReview({
         pageUrl: opts.url,
         pageScreenshot: opts.pageScreenshot,
@@ -73,6 +87,7 @@ program
             waitBeforeCapture: 2000,
             interactionStates: ['hover', 'focus'],
           } : undefined,
+          ai: opts.ai,
         },
       });
     } catch (err: any) {

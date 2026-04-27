@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "ts-node src/cli.ts",
-    "start": "node dist/cli.js",
+    "start:cli": "node dist/cli.js",
     "review": "ts-node src/cli.ts",
     "web": "ts-node src/web/server.ts",
     "start": "ts-node src/web/server.ts"

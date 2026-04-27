@@ -20,6 +20,7 @@ import {
   ToleranceConfig,
 } from '../types';
 import { DEFAULT_TOLERANCE } from '../config';
+import { IssueEnhancer } from './issue-enhancer';
 
 // ============================================================
 // 像素级对比
@@ -487,6 +488,7 @@ export class DiffEngine {
     outputDir = './output'
   ): Promise<DiffResult> {
     console.log('🔄 正在执行设计对比...');
+    const enhancer = new IssueEnhancer();
 
     // 1. 像素级对比
     let pixelResult: PixelDiffResult | null = null;
@@ -529,75 +531,35 @@ export class DiffEngine {
       const pixelIssues: Issue[] = [];
       const diffPct = (100 - pixelResult.similarity).toFixed(2);
 
-      // 根据像素差异程度分级
-      if (pixelResult.similarity < 80) {
-        pixelIssues.push({
-          id: 'pixel-diff-major',
-          level: 'critical',
-          category: 'layout',
-          property: '整体视觉差异',
-          expected: '与设计稿一致',
-          actual: `像素相似度 ${pixelResult.similarity}%`,
-          deviation: `差异率 ${diffPct}%`,
-          suggestion: '页面与设计稿存在较大视觉差异，建议逐一对比各模块的尺寸、颜色、间距等属性',
-        });
-      } else if (pixelResult.similarity < 90) {
-        pixelIssues.push({
-          id: 'pixel-diff-moderate',
-          level: 'major',
-          category: 'layout',
-          property: '整体视觉差异',
-          expected: '与设计稿一致',
-          actual: `像素相似度 ${pixelResult.similarity}%`,
-          deviation: `差异率 ${diffPct}%`,
-          suggestion: '页面与设计稿存在明显差异，重点检查颜色、字号、间距等关键属性',
-        });
-      } else if (pixelResult.similarity < 95) {
-        pixelIssues.push({
-          id: 'pixel-diff-minor1',
-          level: 'major',
-          category: 'layout',
-          property: '整体视觉差异',
-          expected: '与设计稿一致',
-          actual: `像素相似度 ${pixelResult.similarity}%`,
-          deviation: `差异率 ${diffPct}%`,
-          suggestion: '页面与设计稿存在轻微差异，检查细节属性如边距、圆角、阴影等',
-        });
-      } else {
-        pixelIssues.push({
-          id: 'pixel-diff-minor2',
-          level: 'minor',
-          category: 'layout',
-          property: '整体视觉差异',
-          expected: '与设计稿一致',
-          actual: `像素相似度 ${pixelResult.similarity}%`,
-          deviation: `差异率 ${diffPct}%`,
-          suggestion: '页面与设计稿基本一致，存在少量像素差异，属于正常范围',
-        });
-      }
+      // 使用技能标准生成整体视觉差异问题
+      const visualDiffIssue = enhancer.createVisualDiffIssue(pixelResult.similarity, '整体页面', '整体视觉');
+      pixelIssues.push(visualDiffIssue);
 
       // 非重叠区域: 页面内容长度不同
       if (pixelResult.extraHeight && pixelResult.extraHeight > 10) {
         const longerLabel = pixelResult.whichLonger === 'live' ? '线上页面' : '设计稿';
         const shorterLabel = pixelResult.whichLonger === 'live' ? '设计稿' : '线上页面';
         const extraPx = Math.round(pixelResult.extraHeight);
-        pixelIssues.push({
+        const heightIssue = {
           id: 'pixel-height-diff',
-          level: 'minor',
-          category: 'layout',
+          level: 'minor' as IssueLevel,
+          category: 'layout' as IssueCategory,
           property: '内容长度差异',
           expected: `设计稿 ${pixelResult.image1ScaledHeight}px`,
           actual: `线上页面 ${pixelResult.image2ScaledHeight}px`,
           deviation: `${longerLabel}多出约 ${extraPx}px 内容（${shorterLabel}未覆盖）`,
           suggestion: `仅对比了顶部重叠区域（${pixelResult.overlapHeight}px），${longerLabel}下方额外内容未纳入对比`,
-        });
+        };
+        pixelIssues.push(enhancer.enhanceIssue(heightIssue, '整体页面', '页面长度'));
       }
 
       // 分析差异区域, 按垂直位置切分为多个区域生成问题
       if (pixelResult.similarity < 95 && fs.existsSync(pixelResult.diffImagePath)) {
         try {
           const regionIssues = analyzeDiffRegions(pixelResult.diffImagePath, pixelResult);
-          pixelIssues.push(...regionIssues);
+          // 增强区域问题
+          const enhancedRegionIssues = enhancer.enhanceIssues(regionIssues, '整体页面', '特定区域');
+          pixelIssues.push(...enhancedRegionIssues);
         } catch (err) {
           console.warn('⚠️ 差异区域分析失败:', err);
         }
@@ -632,7 +594,10 @@ export class DiffEngine {
         );
 
         if (issues.length > 0) {
-          const score = Math.max(0, 100 - issues.reduce((deduct, issue) => {
+          // 增强问题，添加技能标准的详细信息
+          const enhancedIssues = enhancer.enhanceIssues(issues, figma.name, page.selector);
+
+          const score = Math.max(0, 100 - enhancedIssues.reduce((deduct, issue) => {
             switch (issue.level) {
               case 'critical': return deduct + 20;
               case 'major': return deduct + 10;
@@ -648,7 +613,7 @@ export class DiffEngine {
             figmaScreenshot: figmaData.screenshots[figma.id],
             pageScreenshot: page.screenshot,
             score,
-            issues,
+            issues: enhancedIssues,
           });
         }
       }

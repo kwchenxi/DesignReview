@@ -13,6 +13,8 @@ export interface InputSource {
   /** Figma 设计稿截图本地路径 (与 figmaUrl 二选一) */
   figmaScreenshot?: string;
   figmaToken?: string;
+  /** 目标渲染宽度 (CSS 像素)。设置后，Figma 截图会按此宽度导出，使 Auto Layout 按此宽度渲染 */
+  targetWidth?: number;
   options?: Partial<ReviewOptions>;
 }
 
@@ -23,6 +25,8 @@ export interface ReviewOptions {
   tolerance: ToleranceConfig;
   output: OutputConfig;
   capture: CaptureConfig;
+  /** 启用 AI 视觉分析 (默认根据环境变量自动判断) */
+  ai?: boolean;
 }
 
 export interface ToleranceConfig {
@@ -71,6 +75,8 @@ export interface FigmaDesignData {
   components: FigmaComponent[];
   screenshots: Record<string, string>; // nodeId -> image URL
   fullScreenshot?: string;
+  /** 设计稿原始宽度 (CSS 像素), 从 Figma 节点 absoluteBoundingBox 获取 */
+  designWidth?: number;
 }
 
 export interface FigmaComponent {
@@ -213,6 +219,18 @@ export interface Issue {
   actual: string;
   deviation: string;
   suggestion: string;
+  
+  // 增强字段 (基于 design-implementation-review-main skill)
+  title?: string;           // 问题标题，如"导航栏布局错位"
+  location?: string;        // 问题位置，如"页面头部导航栏"
+  observed?: string;        // 观察到的实现细节（比actual更详细）
+  impact?: string;         // 问题影响分析
+  recommendation?: string;  // 修复建议（与suggestion类似，但更具体）
+  
+  // 元数据
+  severity?: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'; // 优先级级别
+  componentName?: string;   // 组件名称
+  confidence?: number;      // 检测置信度 (0-100)
 }
 
 // ============================================================
@@ -236,4 +254,8 @@ export interface ReportMeta {
   majorCount: number;
   minorCount: number;
   suggestionCount: number;
+  /** 页面截图文件路径 */
+  pageScreenshot?: string;
+  /** 设计稿截图文件路径 */
+  figmaScreenshot?: string;
 }
