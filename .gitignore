@@ -6,3 +6,12 @@ screenshots/
 .env
 .DS_Store
 *.tsbuildinfo
+
+# 个人配置（不提交）
+.claude/settings*
+.codebuddy/
+design-review-output/
+
+# OS 文件
+*.command
+Thumbs.db
