@@ -107,9 +107,9 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
       const recommendation = issue.recommendation || issue.suggestion;
       
       // 是否显示详细信息（如果有impact或详细描述）
-      const hasDetails = impact || (issue.observed && issue.observed !== issue.actual);
+      const hasDetails = impact || (issue.observed && issue.observed !== issue.actual) || issue.specReference;
       const detailsId = `details-${mod.name.replace(/\s+/g, '-')}-${idx}-${issue.id}`;
-      
+
       return `
       <tr class="issue-row ${issue.level}" ${hasDetails ? `onclick="toggleDetails('${detailsId}')" style="cursor: pointer;"` : ''}>
         <td><span class="level-badge ${issue.level}">${LEVEL_ICON[issue.level]} ${LEVEL_LABEL[issue.level]}</span></td>
@@ -124,6 +124,7 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
       <tr class="issue-details-row" id="${detailsId}" style="display: none;">
         <td colspan="7">
           <div class="issue-details">
+            ${issue.specReference ? `<div class="detail-item spec-ref"><strong>规范引用:</strong> ${issue.specReference}</div>` : ''}
             ${impact ? `<div class="detail-item"><strong>影响分析:</strong> ${impact}</div>` : ''}
             ${issue.observed && issue.observed !== issue.actual ? `<div class="detail-item"><strong>观察描述:</strong> ${issue.observed}</div>` : ''}
             ${issue.recommendation && issue.recommendation !== issue.suggestion ? `<div class="detail-item"><strong>详细建议:</strong> ${issue.recommendation}</div>` : ''}
@@ -490,6 +491,16 @@ function generateHtml(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: DiffRe
       display: inline-block;
       min-width: 80px;
     }
+    .issue-details .detail-item.spec-ref {
+      background: rgba(12,127,252,.08);
+      border-radius: 8px;
+      padding: 8px 12px;
+      border-left: 3px solid var(--accent);
+      color: var(--accent);
+    }
+    .issue-details .detail-item.spec-ref strong {
+      color: var(--accent);
+    }
 
     @media (max-width: 768px) {
       .report-header { flex-direction: column; text-align: center; }
@@ -697,8 +708,8 @@ function generateMarkdown(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: Di
     lines.push(`### ${mod.name} (${mod.score}分)`);
     lines.push('');
 
-    lines.push('| 等级 | 类别 | 属性 | 设计稿 | 线上 | 修复建议 |');
-    lines.push('|------|------|------|--------|------|----------|');
+    lines.push('| 等级 | 类别 | 属性 | 设计稿 | 线上 | 修复建议 | 规范引用 |');
+    lines.push('|------|------|------|--------|------|----------|----------|');
 
     for (const issue of mod.issues) {
       lines.push(
@@ -707,7 +718,8 @@ function generateMarkdown(meta: ReportMeta, modules: ModuleDiff[], pixelDiff: Di
         `| ${issue.property} ` +
         `| ${issue.expected} ` +
         `| ${issue.actual} ` +
-        `| ${issue.suggestion} |`
+        `| ${issue.suggestion} ` +
+        `| ${issue.specReference || '-'} |`
       );
     }
     lines.push('');

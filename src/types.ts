@@ -231,6 +231,56 @@ export interface Issue {
   severity?: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'; // 优先级级别
   componentName?: string;   // 组件名称
   confidence?: number;      // 检测置信度 (0-100)
+  /** 设计规范引用 (如 "yzj-ui: @dumi-primary = #4d90fe") */
+  specReference?: string;
+}
+
+// ============================================================
+// 设计规范数据源类型
+// ============================================================
+
+export interface DesignSpecSource {
+  /** npm registry 地址 */
+  registry: string;
+  /** 包名 */
+  packageName: string;
+  /** 版本 (默认 latest) */
+  version?: string;
+}
+
+export interface DesignToken {
+  /** token 名称 */
+  name: string;
+  /** 值 */
+  value: string;
+  /** 类别: color / spacing / font / radius / shadow */
+  category: 'color' | 'spacing' | 'font' | 'radius' | 'shadow' | 'other';
+  /** 原始来源文件 */
+  source?: string;
+}
+
+export interface ComponentSpec {
+  /** 组件名 */
+  name: string;
+  /** 组件文件路径 */
+  path: string;
+  /** 提取的样式规则 */
+  styles: string;
+  /** 提取的设计 token */
+  tokens: DesignToken[];
+}
+
+export interface DesignSpecData {
+  /** 数据源信息 */
+  source: DesignSpecSource;
+  /** 提取的设计 token */
+  tokens: DesignToken[];
+  /** 提取的组件规范 */
+  components: ComponentSpec[];
+  /** 原始样式文本 (用于 AI prompt) */
+  rawStyleText: string;
+  /** 获取时间 */
+  fetchedAt: string;
 }
 
 // ============================================================

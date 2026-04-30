@@ -9,6 +9,7 @@ import { designReview } from '../index';
 import { AIAnalyzer } from '../diff/ai-analyzer';
 import { ReportGenerator } from '../report/generator';
 import { DiffEngine } from '../diff/engine';
+import { DesignSpecFetcher } from '../design-spec/fetcher';
 
 const app = express();
 const PORT = 3456;
@@ -131,6 +132,7 @@ app.post('/api/compare', upload.fields([
 // ============================================================
 
 const aiAnalyzer = new AIAnalyzer();
+const designSpecFetcher = new DesignSpecFetcher();
 
 // 检查 AI 配置状态
 app.get('/api/ai/status', (_req, res) => {
@@ -138,6 +140,64 @@ app.get('/api/ai/status', (_req, res) => {
     configured: aiAnalyzer.isConfigured,
     model: aiAnalyzer.isConfigured ? (process.env.AI_MODEL || 'gpt-4o') : '',
   });
+});
+
+// ============================================================
+// 设计规范数据源 API
+// ============================================================
+
+// 获取设计规范配置状态
+app.get('/api/design-spec/status', async (_req, res) => {
+  try {
+    const spec = await designSpecFetcher.fetch();
+    res.json({
+      configured: true,
+      packageName: spec.source.packageName,
+      registry: spec.source.registry,
+      tokensCount: spec.tokens.length,
+      componentsCount: spec.components.length,
+      fetchedAt: spec.fetchedAt,
+    });
+  } catch (err: any) {
+    res.json({
+      configured: false,
+      error: err.message,
+    });
+  }
+});
+
+// 获取设计规范详情
+app.get('/api/design-spec/detail', async (_req, res) => {
+  try {
+    const spec = await designSpecFetcher.fetch();
+    res.json({
+      source: spec.source,
+      tokens: spec.tokens,
+      components: spec.components.map(c => ({
+        name: c.name,
+        path: c.path,
+        tokens: c.tokens,
+        styles: c.styles,
+      })),
+      fetchedAt: spec.fetchedAt,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 刷新设计规范（强制重新拉取）
+app.post('/api/design-spec/refresh', async (_req, res) => {
+  try {
+    const spec = await designSpecFetcher.fetch(true);
+    res.json({
+      success: true,
+      tokensCount: spec.tokens.length,
+      componentsCount: spec.components.length,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // 保存 AI 配置（仅在当次运行中生效）
@@ -234,6 +294,17 @@ app.post('/api/ai/compare', upload.fields([
     }
 
     console.log('🤖 正在进行 AI 视觉分析...');
+
+    // 加载设计规范（如果可用）
+    try {
+      const spec = await designSpecFetcher.fetch();
+      if (spec.tokens.length > 0 || spec.components.length > 0) {
+        aiAnalyzer.setDesignSpec(spec);
+        console.log(`📐 已加载设计规范: ${spec.tokens.length} tokens, ${spec.components.length} 组件`);
+      }
+    } catch {
+      // 设计规范加载失败不影响分析
+    }
     const result = await aiAnalyzer.analyze(figmaScreenshot, pageScreenshot, jobOutputDir);
     console.log(`✅ AI 分析完成: 发现 ${result.issues.length} 个问题`);
 
@@ -799,6 +870,11 @@ function getHomePage(): string {
     <div class="container" style="display:flex;align-items:center;gap:12px;">
       <div class="logo-mark">D</div>
       <div class="logo-text">Design<span>Review</span><span style="color:var(--text-secondary);font-weight:400;margin-left:4px;">/ 设计还原度检查</span></div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+        <span class="ai-status" id="designSpecStatus" style="cursor:pointer" onclick="showDesignSpecDetail()">
+          <span class="ai-status-dot"></span><span id="designSpecText">加载中...</span>
+        </span>
+      </div>
     </div>
   </header>
 
@@ -992,6 +1068,46 @@ function getHomePage(): string {
       aiSettingsExpanded = !aiSettingsExpanded;
       document.getElementById('aiFieldsBody').style.display = aiSettingsExpanded ? 'block' : 'none';
       document.getElementById('aiToggleArrow').textContent = aiSettingsExpanded ? '▼' : '▶';
+    }
+
+    // 检查设计规范状态
+    async function checkDesignSpecStatus() {
+      try {
+        const resp = await fetch('/api/design-spec/status');
+        const data = await resp.json();
+        const statusEl = document.getElementById('designSpecStatus');
+        const statusText = document.getElementById('designSpecText');
+        if (data.configured) {
+          statusEl.className = 'ai-status ok';
+          statusText.textContent = data.packageName + ' (' + data.tokensCount + ' tokens)';
+        } else {
+          statusEl.className = 'ai-status no';
+          statusText.textContent = '设计规范未加载';
+        }
+      } catch {
+        document.getElementById('designSpecText').textContent = '加载失败';
+      }
+    }
+    checkDesignSpecStatus();
+
+    async function showDesignSpecDetail() {
+      try {
+        const resp = await fetch('/api/design-spec/detail');
+        const data = await resp.json();
+        let msg = '设计规范: ' + data.source.packageName + '\\n';
+        msg += 'Registry: ' + data.source.registry + '\\n\\n';
+        if (data.tokens.length) {
+          msg += '=== Design Tokens ===\\n';
+          for (const t of data.tokens) msg += t.name + ': ' + t.value + ' (' + t.category + ')\\n';
+        }
+        if (data.components.length) {
+          msg += '\\n=== 组件 (' + data.components.length + ') ===\\n';
+          for (const c of data.components) msg += '- ' + c.name + ' (' + c.tokens.length + ' tokens)\\n';
+        }
+        alert(msg);
+      } catch {
+        alert('获取设计规范详情失败');
+      }
     }
 
     checkAIStatus();

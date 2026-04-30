@@ -4,8 +4,9 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { Issue, IssueLevel, IssueCategory, ModuleDiff, PixelDiffResult } from '../types';
+import { Issue, IssueLevel, IssueCategory, ModuleDiff, PixelDiffResult, DesignSpecData } from '../types';
 import { pixelDiff } from './engine';
+import { DesignSpecFetcher } from '../design-spec/fetcher';
 
 // ============================================================
 // 类型定义
@@ -62,6 +63,7 @@ export const DEFAULT_AI_CONFIG: AIAnalyzerConfig = {
 
 export class AIAnalyzer {
   private config: AIAnalyzerConfig;
+  private designSpec: DesignSpecData | null = null;
 
   constructor(config?: Partial<AIAnalyzerConfig>) {
     this.config = { ...DEFAULT_AI_CONFIG, ...config };
@@ -76,6 +78,13 @@ export class AIAnalyzer {
    */
   updateConfig(config: Partial<AIAnalyzerConfig>): void {
     this.config = { ...this.config, ...config };
+  }
+
+  /**
+   * 设置设计规范数据
+   */
+  setDesignSpec(spec: DesignSpecData | null): void {
+    this.designSpec = spec;
   }
 
   /**
@@ -133,12 +142,37 @@ export class AIAnalyzer {
       ? `像素级相似度: ${pixelResult.similarity}%`
       : '像素级相似度: 未计算';
 
+    // 构建设计规范参考信息
+    let designSpecSection = '';
+    if (this.designSpec) {
+      const spec = this.designSpec;
+      designSpecSection = `\n\n## 设计规范参考 (来自 ${spec.source.packageName})\n`;
+
+      if (spec.tokens.length > 0) {
+        designSpecSection += '\n### 设计 Token\n';
+        for (const t of spec.tokens) {
+          designSpecSection += `- ${t.name}: ${t.value}\n`;
+        }
+      }
+
+      if (spec.components.length > 0) {
+        designSpecSection += '\n### 组件规范\n';
+        for (const c of spec.components) {
+          designSpecSection += `\n#### ${c.name}\n\`\`\`less\n${c.styles}\n\`\`\`\n`;
+        }
+      }
+
+      if (!spec.tokens.length && !spec.components.length && spec.rawStyleText) {
+        designSpecSection += `\n\`\`\`less\n${spec.rawStyleText.slice(0, 2000)}\n\`\`\`\n`;
+      }
+    }
+
     return `你是一位专业的设计审查专家。请对比以下两张截图：
 
 1. 第一张图是**设计稿**（Figma 设计）
 2. 第二张图是**实现页面**（线上实际截图）
 
-参考信息: ${similarityInfo}
+参考信息: ${similarityInfo}${designSpecSection}
 
 请仔细对比两张图，找出所有视觉差异，并按照以下 JSON 格式输出（不要输出其他内容，只输出 JSON）：
 
@@ -154,7 +188,8 @@ export class AIAnalyzer {
       "observed": "<观察到的实现状态，如'按钮背景色为#0078D4'>",
       "expected": "<设计稿期望状态，如'设计指定品牌蓝色为#0A66C2'>",
       "impact": "<问题影响分析>",
-      "recommendation": "<修复建议>"
+      "recommendation": "<修复建议>",
+      "specReference": "<当问题与设计规范有关时，引用具体规范条目，如'${this.designSpec?.source.packageName || '设计规范'}: @dumi-primary = #4d90fe'；如无直接关联则填 null>"
     }
   ]
 }
@@ -171,6 +206,8 @@ export class AIAnalyzer {
 - 只报告确实存在的差异，不要猜测
 - severity 的判定标准: CRITICAL=功能不可用/关键内容缺失, HIGH=明显视觉差异/品牌偏差, MEDIUM=可察觉但影响较小, LOW=细微优化建议
 - 尽量给出具体的色值、尺寸等量化信息
+- 如果提供了设计规范参考，请结合规范中的 token 进行对照检查，并在 specReference 中明确引用违反/偏离的具体 token 名称和期望值
+- specReference 格式示例: "yzj-ui: @dumi-primary 应为 #4d90fe" 或 "yzj-ui: Button 圆角应为 6px"
 - 请确保输出合法的 JSON`;
   }
 
@@ -373,6 +410,7 @@ export class AIAnalyzer {
         recommendation: item.recommendation,
         severity: item.severity,
         confidence: 85,
+        specReference: item.specReference || undefined,
       };
     });
 
