@@ -1,11 +1,11 @@
 // ============================================================
-// Design Review Public - 前端逻辑（Vercel 版）
+// Design Review Public — Frontend Logic (Vercel)
 // ============================================================
 
 let currentMode = 'ai';
 let lastReportHtml = '';
 
-// 模式切换
+// ─── Mode switch ───
 function switchMode(mode) {
   currentMode = mode;
   document.querySelectorAll('.mode-option').forEach(btn => {
@@ -14,7 +14,7 @@ function switchMode(mode) {
   document.getElementById('aiSettings').classList.toggle('visible', mode === 'ai');
 }
 
-// AI 设置折叠
+// ─── AI settings toggle ───
 let aiSettingsExpanded = false;
 function toggleAISettings() {
   aiSettingsExpanded = !aiSettingsExpanded;
@@ -22,7 +22,7 @@ function toggleAISettings() {
   document.getElementById('aiToggleArrow').textContent = aiSettingsExpanded ? '▼' : '▶';
 }
 
-// 检查 AI 状态
+// ─── Check AI status ───
 async function checkAIStatus() {
   try {
     const resp = await fetch('/api/ai/status');
@@ -47,7 +47,7 @@ async function checkAIStatus() {
   }
 }
 
-// 保存 AI 配置
+// ─── Save AI config ───
 async function saveAIConfig() {
   const apiKey = document.getElementById('aiApiKey').value.trim();
   const apiBase = document.getElementById('aiApiBase').value.trim();
@@ -64,7 +64,7 @@ async function saveAIConfig() {
   } catch {}
 }
 
-// 选择模型时自动切换 API Base
+// ─── Auto-switch API base on model change ───
 document.getElementById('aiModel').addEventListener('change', () => {
   const model = document.getElementById('aiModel').value;
   const apiBaseInput = document.getElementById('aiApiBase');
@@ -78,11 +78,11 @@ document.getElementById('aiModel').addEventListener('change', () => {
 document.getElementById('aiApiKey').addEventListener('change', saveAIConfig);
 document.getElementById('aiApiBase').addEventListener('change', saveAIConfig);
 
-// 初始化
+// ─── Init ───
 checkAIStatus();
 switchMode(currentMode);
 
-// 文件拖拽与预览
+// ─── File drag & preview ───
 const pageCard = document.getElementById('pageCard');
 const figmaCard = document.getElementById('figmaCard');
 const pageFile = document.getElementById('pageFile');
@@ -117,7 +117,7 @@ function setupPreview(fileInput, nameEl, previewEl, card) {
 setupPreview(pageFile, document.getElementById('pageFileName'), document.getElementById('pagePreview'), pageCard);
 setupPreview(figmaFile, document.getElementById('figmaFileName'), document.getElementById('figmaPreview'), figmaCard);
 
-// 提交
+// ─── Submit ───
 const form = document.getElementById('compareForm');
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -127,15 +127,8 @@ form.addEventListener('submit', async (e) => {
   const errorMsg = document.getElementById('errorMsg');
   const reportContainer = document.getElementById('reportFrameContainer');
 
-  // 校验
-  if (!pageFile.files[0]) {
-    showError('请上传线上页面截图');
-    return;
-  }
-  if (!figmaFile.files[0]) {
-    showError('请上传设计稿截图');
-    return;
-  }
+  if (!pageFile.files[0]) { showError('请上传线上页面截图'); return; }
+  if (!figmaFile.files[0]) { showError('请上传设计稿截图'); return; }
 
   submitBtn.disabled = true;
   loading.classList.add('visible');
@@ -143,9 +136,7 @@ form.addEventListener('submit', async (e) => {
   errorMsg.classList.remove('visible');
   reportContainer.style.display = 'none';
 
-  if (currentMode === 'ai') {
-    await saveAIConfig();
-  }
+  if (currentMode === 'ai') { await saveAIConfig(); }
 
   try {
     const formData = new FormData();
@@ -153,20 +144,18 @@ form.addEventListener('submit', async (e) => {
     formData.append('figmaScreenshot', figmaFile.files[0]);
 
     const apiEndpoint = currentMode === 'ai' ? '/api/ai/compare' : '/api/compare';
-
     const resp = await fetch(apiEndpoint, { method: 'POST', body: formData });
     const data = await resp.json();
 
-    if (!resp.ok) {
-      throw new Error(data.error || '对比失败');
-    }
+    if (!resp.ok) { throw new Error(data.error || '对比失败'); }
 
-    // 显示分数
+    // Score
     const scoreWrapper = document.getElementById('scoreWrapper');
     scoreWrapper.className = 'score-wrapper ' + (data.score >= 90 ? 'score-high' : data.score >= 70 ? 'score-mid' : 'score-low');
     document.getElementById('resultScore').textContent = data.score;
     document.getElementById('resultSummary').textContent = data.summary || ('共发现 ' + data.totalIssues + ' 个问题');
 
+    // Stats
     const statsEl = document.getElementById('resultStats');
     statsEl.innerHTML = '';
     if (data.criticalCount) statsEl.innerHTML += '<span class="stat-chip critical"><span class="stat-dot"></span>严重 ' + data.criticalCount + '</span>';
@@ -174,7 +163,7 @@ form.addEventListener('submit', async (e) => {
     if (data.minorCount) statsEl.innerHTML += '<span class="stat-chip minor"><span class="stat-dot"></span>次要 ' + data.minorCount + '</span>';
     if (data.suggestionCount) statsEl.innerHTML += '<span class="stat-chip suggestion"><span class="stat-dot"></span>建议 ' + data.suggestionCount + '</span>';
 
-    // 保存报告 HTML（正确解码 UTF-8 中文）
+    // Report HTML (UTF-8 base64 decode)
     if (data.reportHtml) {
       const binaryStr = atob(data.reportHtml);
       const bytes = new Uint8Array(binaryStr.length);
@@ -183,7 +172,7 @@ form.addEventListener('submit', async (e) => {
     }
 
     resultSection.classList.add('visible');
-    resultSection.scrollIntoView({ behavior: 'smooth' });
+    resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (err) {
     showError(err.message);
   } finally {
@@ -192,25 +181,22 @@ form.addEventListener('submit', async (e) => {
   }
 });
 
-// 显示报告
+// ─── Show report ───
 function showReport() {
-  if (!lastReportHtml) {
-    alert('报告内容为空');
-    return;
-  }
+  if (!lastReportHtml) { alert('报告内容为空'); return; }
   const container = document.getElementById('reportFrameContainer');
   const frame = document.getElementById('reportFrame');
   frame.srcdoc = lastReportHtml;
   container.style.display = 'block';
-  container.scrollIntoView({ behavior: 'smooth' });
+  container.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// 关闭报告
+// ─── Close report ───
 function closeReport() {
   document.getElementById('reportFrameContainer').style.display = 'none';
 }
 
-// 重置
+// ─── Reset ───
 function resetForm() {
   form.reset();
   document.getElementById('pageFileName').textContent = '';
@@ -226,9 +212,29 @@ function resetForm() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// 显示错误
+// ─── Show error ───
 function showError(msg) {
   const errorMsg = document.getElementById('errorMsg');
-  errorMsg.textContent = msg;
+  const errorText = document.getElementById('errorText');
+  if (errorText) { errorText.textContent = msg; }
+  else { errorMsg.textContent = msg; }
   errorMsg.classList.add('visible');
 }
+
+// ─── Scroll-triggered fade-in ───
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.style.opacity = '1';
+      entry.target.style.transform = 'translateY(0)';
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.result-section, .report-frame-container').forEach(el => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(20px)';
+  el.style.transition = 'opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)';
+  observer.observe(el);
+});
