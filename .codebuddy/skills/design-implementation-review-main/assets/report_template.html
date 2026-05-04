@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设计实现对比报告</title>
+    <style>
+        :root {
+            --primary-color: #1890ff;
+            --success-color: #52c41a;
+            --warning-color: #faad14;
+            --error-color: #ff4d4f;
+            --critical-color: #f5222d;
+            --major-color: #fa8c16;
+            --minor-color: #faad14;
+            --suggestion-color: #13c2c2;
+            --bg-color: #f5f5f5;
+            --card-bg: #ffffff;
+            --border-color: #d9d9d9;
+            --text-primary: #262626;
+            --text-secondary: #595959;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 32px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .logo h1 {
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        
+        .summary-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .score-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .score-excellent { background: linear-gradient(135deg, var(--success-color), #73d13d); }
+        .score-good { background: linear-gradient(135deg, var(--warning-color), #ffc53d); }
+        .score-fair { background: linear-gradient(135deg, #fa8c16, #ff9c6e); }
+        .score-poor { background: linear-gradient(135deg, var(--error-color), #ff7875); }
+        
+        .comparison-section {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 32px;
+            margin-bottom: 32px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .image-comparison {
+            max-width: 100%;
+            margin: 24px auto;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .image-container {
+            position: relative;
+            height: 400px;
+            background: #f0f0f0;
+        }
+        
+        .image-slider {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            transform: translateX(-50%);
+            overflow: hidden;
+        }
+        
+        .images {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .img-design, .img-implementation {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        
+        .img-design {
+            left: 0;
+            z-index: 1;
+        }
+        
+        .img-implementation {
+            right: 0;
+            width: 50%;
+            border-left: 2px solid var(--warning-color);
+        }
+        
+        .slider-handle {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--warning-color);
+            cursor: ew-resize;
+            transform: translateX(-50%);
+            z-index: 2;
+        }
+        
+        .slider-handle::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 24px;
+            height: 24px;
+            background: var(--warning-color);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .issues-section {
+            margin-bottom: 32px;
+        }
+        
+        .issue-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        
+        .issue-card {
+            background: var(--card-bg);
+            border-left: 4px solid var(--border-color);
+            padding: 16px;
+            border-radius: 4px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .issue-critical { border-left-color: var(--critical-color); }
+        .issue-major { border-left-color: var(--major-color); }
+        .issue-minor { border-left-color: var(--minor-color); }
+        .issue-suggestion { border-left-color: var(--suggestion-color); }
+        
+        .issue-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .issue-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .indicator-critical { background: var(--critical-color); }
+        .indicator-major { background: var(--major-color); }
+        .indicator-minor { background: var(--minor-color); }
+        .indicator-suggestion { background: var(--suggestion-color); }
+        
+        .issue-title {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .issue-description {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        
+        .issue-location {
+            font-size: 12px;
+            color: var(--text-secondary);
+            background: #f0f0f0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        
+        .category-stats {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin: 24px 0;
+        }
+        
+        .category-stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-count {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .recommendations {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 24px;
+            margin-top: 32px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .recommendation-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .rec-icon {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 24px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            border-top: 1px solid var(--border-color);
+            margin-top: 40px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+            
+            header {
+                padding: 24px 0;
+            }
+            
+            .logo h1 {
+                font-size: 24px;
+            }
+            
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .issue-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .image-container {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <h1>🎨 设计实现对比报告</h1>
+            </div>
+            <p class="subtitle">设计稿与实际实现页面的详细对比分析报告</p>
+            <div class="metadata">
+                <div style="margin-top: 16px; color: var(--text-secondary);">
+                    生成时间：{{reportDate}} | 工具版本：design-implementation-review-main
+                </div>
+            </div>
+        </header>
+        
+        <section class="summary-grid">
+            <div class="summary-card">
+                <div class="score-circle {{scoreClass}}">
+                    {{overallScore}}%
+                </div>
+                <h3>总体还原度</h3>
+                <p style="color: var(--text-secondary); margin-top: 8px;">{{overallAssessment}}</p>
+            </div>
+            
+            <div class="summary-card">
+                <h3 style="color: var(--text-secondary); margin-bottom: 16px;">问题统计</h3>
+                <div class="category-stats" style="justify-content: center;">
+                    <div class="category-stat">
+                        <span class="stat-count" style="color: var(--critical-color);">{{criticalCount}}</span>
+                        <span style="color: var(--text-secondary);">严重</span>
+                    </div>
+                    <div class="category-stat">
+                        <span class="stat-count" style="color: var(--major-color);">{{majorCount}}</span>
+                        <span style="color: var(--text-secondary);">主要</span>
+                    </div>
+                    <div class="category-stat">
+                        <span class="stat-count" style="color: var(--minor-color);">{{minorCount}}</span>
+                        <span style="color: var(--text-secondary);">次要</span>
+                    </div>
+                    <div class="category-stat">
+                        <span class="stat-count" style="color: var(--suggestion-color);">{{suggestionCount}}</span>
+                        <span style="color: var(--text-secondary);">建议</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="summary-card">
+                <h3 style="color: var(--text-secondary); margin-bottom: 16px;">文件信息</h3>
+                <div style="text-align: left;">
+                    <div style="margin-bottom: 8px;">
+                        <strong>设计稿：</strong><br>
+                        <span style="color: var(--text-secondary); font-size: 14px;">{{designFileName}}</span>
+                    </div>
+                    <div>
+                        <strong>实现页面：</strong><br>
+                        <span style="color: var(--text-secondary); font-size: 14px;">{{implementationFileName}}</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        {{#if hasComparison}}
+        <section class="comparison-section">
+            <h2>📊 视觉对比</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                拖动滑块查看设计稿(左侧)与实现页面(右侧)的差异
+            </p>
+            
+            <div class="image-comparison">
+                <div class="image-container">
+                    <div class="image-slider">
+                        <div class="images">
+                            <div class="img-design" style="background-image: url('{{designImage}}');"></div>
+                            <div class="img-implementation" style="background-image: url('{{implementationImage}}');"></div>
+                            <div class="slider-handle" id="slider"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 16px; font-size: 14px; color: var(--text-secondary);">
+                🔍 提示：拖动中间滑块可对比两侧差异
+            </div>
+        </section>
+        {{/if}}
+        
+        <section class="issues-section">
+            <h2>🔍 发现问题</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                共发现 {{totalIssues}} 个问题，其中 {{criticalCount}} 个严重问题需要优先处理
+            </p>
+            
+            {{#if issues.length}}
+            <div class="issue-cards">
+                {{#each issues}}
+                <div class="issue-card issue-{{level}}">
+                    <div class="issue-header">
+                        <div class="issue-indicator indicator-{{level}}"></div>
+                        <span class="issue-title">{{title}}</span>
+                    </div>
+                    <p class="issue-description">{{description}}</p>
+                    <div class="issue-location">📍 {{location}}</div>
+                </div>
+                {{/each}}
+            </div>
+            {{else}}
+            <div style="text-align: center; padding: 48px; color: var(--text-secondary); background: var(--card-bg); border-radius: 8px;">
+                🎉 恭喜！未发现任何问题，实现与设计稿高度一致！
+            </div>
+            {{/if}}
+        </section>
+        
+        <section class="recommendations">
+            <h2>💡 改进建议</h2>
+            <div style="margin-top: 16px;">
+                {{#each recommendations}}
+                <div class="recommendation-item">
+                    <div class="rec-icon">{{@index}}</div>
+                    <div>
+                        <strong>{{title}}</strong>
+                        <p style="color: var(--text-secondary); margin-top: 4px; font-size: 14px;">{{description}}</p>
+                    </div>
+                </div>
+                {{/each}}
+            </div>
+        </section>
+    </div>
+    
+    <footer>
+        <p>报告由 design-implementation-review-main 技能生成</p>
+        <p style="margin-top: 8px; font-size: 12px;">
+            基于像素对比技术，对比阈值 {{threshold}}，抗锯齿检测已启用
+        </p>
+    </footer>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const slider = document.getElementById('slider');
+            const implementationImg = document.querySelector('.img-implementation');
+            
+            if (slider && implementationImg) {
+                let isDragging = false;
+                
+                slider.addEventListener('mousedown', function(e) {
+                    isDragging = true;
+                    document.body.style.cursor = 'ew-resize';
+                });
+                
+                document.addEventListener('mousemove', function(e) {
+                    if (!isDragging) return;
+                    
+                    const container = document.querySelector('.image-container');
+                    const rect = container.getBoundingClientRect();
+                    let x = e.clientX - rect.left;
+                    
+                    x = Math.max(0, Math.min(x, rect.width));
+                    
+                    const percent = (x / rect.width) * 100;
+                    implementationImg.style.width = (100 - percent) + '%';
+                    slider.style.left = percent + '%';
+                });
+                
+                document.addEventListener('mouseup', function() {
+                    isDragging = false;
+                    document.body.style.cursor = '';
+                });
+                
+                slider.addEventListener('touchstart', function(e) {
+                    isDragging = true;
+                });
+                
+                document.addEventListener('touchmove', function(e) {
+                    if (!isDragging) return;
+                    
+                    const container = document.querySelector('.image-container');
+                    const rect = container.getBoundingClientRect();
+                    let x = e.touches[0].clientX - rect.left;
+                    
+                    x = Math.max(0, Math.min(x, rect.width));
+                    
+                    const percent = (x / rect.width) * 100;
+                    implementationImg.style.width = (100 - percent) + '%';
+                    slider.style.left = percent + '%';
+                    
+                    e.preventDefault();
+                });
+                
+                document.addEventListener('touchend', function() {
+                    isDragging = false;
+                });
+                
+                // 初始化滑块位置
+                implementationImg.style.width = '50%';
+                slider.style.left = '50%';
+            }
+        });
+    </script>
+</body>
+</html>

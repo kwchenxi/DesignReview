@@ -1,0 +1,299 @@
+---
+description: 
+alwaysApply: false
+enabled: true
+updatedAt: 2026-04-26T02:59:31.459Z
+provider: 
+---
+
+# design-implementation-review
+
+## Purpose
+A Claude Code skill for final design acceptance review. It compares the shipped UI against the Figma design intent, identifies implementation mismatches, prioritizes issues, and produces a developer-friendly review document with clear visual evidence and actionable recommendations.
+
+---
+
+## When to Use
+Use this skill when a designer, PM, or engineer wants to verify whether a live implementation or staging build matches the approved Figma design.
+
+Typical scenarios:
+- final design QA before release
+- regression check after implementation
+- handoff verification between design and engineering
+- bug bash focused on visual/design fidelity
+- design sign-off preparation
+
+---
+
+## Inputs
+The skill should ask for or infer the following inputs:
+
+### Required
+- **Figma reference**: frame link, exported image, or annotated reference
+- **Implementation target**: live URL, staging URL, or screenshot
+- **Platform/device**: iOS, Android, Web, Desktop, plus target viewport/device
+- **Scope**: full page, screen, modal, component, or specific section
+
+### Optional
+- **Review focus**: layout, spacing, typography, colors, copy, component states, interaction, accessibility
+- **Build context**: environment name, branch, build number
+- **Known constraints**: intentional deviations, technical limitations, localization differences
+- **Output format**: markdown, HTML, Figma-ready annotation text, Jira-ready issue list
+
+If any required input is missing, ask concise follow-up questions before proceeding.
+
+---
+
+## Core Review Principles
+1. **Compare intent, not just pixels**  
+   Do not rely only on screenshot differences. Evaluate whether the shipped UI preserves the design intent, hierarchy, usability, and interaction logic.
+
+2. **Be specific and actionable**  
+   Every issue must say what is wrong, where it is, why it matters, and what to change.
+
+3. **Optimize for engineering collaboration**  
+   Write issues in a neutral and precise tone. Avoid blame. Frame findings as implementation deviations from approved design intent.
+
+4. **Prioritize signal over volume**  
+   Merge repetitive issues. Highlight the most important problems first.
+
+5. **Use evidence in every issue**  
+   For every issue, provide a reference to the Figma state and the shipped UI state.
+
+---
+
+## Review Dimensions
+Always evaluate across these dimensions unless the user narrows the scope:
+
+### 1. Layout & Structure
+Check for:
+- missing or extra elements
+- module order differences
+- alignment issues
+- spacing inconsistencies
+- broken grid behavior
+- unexpected line wrapping
+- clipping or overflow
+
+### 2. Visual Style
+Check for:
+- typography hierarchy mismatches
+- incorrect font size, weight, or line height
+- wrong colors, opacity, or elevation
+- incorrect radius, border, or shadow
+- icon style inconsistency
+- image crop or aspect ratio problems
+
+### 3. Copy & Content
+Check for:
+- wording mismatches
+- placeholder text not replaced
+- truncation or overflow
+- inconsistent capitalization or terminology
+- missing helper text, disclaimers, or labels
+- wrong numeric/date formatting
+
+### 4. Component States
+Check for:
+- default, hover, pressed, focused, disabled, loading states
+- empty, error, success, and validation states
+- selected/unselected behavior
+- skeleton/loading placeholder mismatches
+- state transitions missing or unclear
+
+### 5. Interaction Expectations
+Check for:
+- missing affordance
+- incorrect tap/click targets
+- modal, sheet, tooltip, toast behavior differences
+- navigation outcome mismatch
+- absent animation or feedback when it is essential to comprehension
+
+### 6. Accessibility & Usability
+Check for:
+- insufficient contrast
+- unreadable font scale
+- touch target too small
+- hidden or obscured controls
+- keyboard overlap or scrolling traps
+- ambiguous focus/selection behavior
+
+---
+
+## Severity Framework
+Use exactly four levels:
+
+- **Critical**: blocks release, breaks core flow, or causes a major design/usability failure
+- **High**: major deviation in a key area; should be fixed before sign-off
+- **Medium**: noticeable mismatch that affects polish, hierarchy, or consistency
+- **Low**: minor quality issue or non-blocking visual refinement
+
+When useful, also classify by type:
+- Layout
+- Visual
+- Copy
+- State
+- Interaction
+- Accessibility
+
+---
+
+## Execution Workflow
+Follow this sequence:
+
+### Step 1 — Normalize the comparison baseline
+Before reviewing, confirm or infer:
+- same screen/state is being compared
+- same device size or viewport
+- same theme mode
+- same language/localization
+- same data condition if possible
+
+If the baseline is not comparable, call it out before reviewing.
+
+### Step 2 — Scan the overall composition
+Start with high-level differences:
+- page hierarchy
+- major sections
+- obvious missing or extra UI
+- primary CTA prominence
+- overall balance and visual rhythm
+
+### Step 3 — Inspect the important details
+Move into the review dimensions:
+- layout
+- visual style
+- content
+- states
+- interactions
+- accessibility
+
+### Step 4 — Group and prioritize findings
+- merge duplicate issues
+- group related issues by area or component
+- surface the top 3 risks first
+- separate blocking issues from polish issues
+
+### Step 5 — Produce the deliverable
+Generate a report that includes:
+- final verdict
+- summary counts by severity
+- top risks
+- detailed issue cards
+- recommended fix order
+- optional Figma annotation text
+
+---
+
+## Required Output Structure
+Always produce the response in this structure unless the user asks for a different format:
+
+# Design Implementation Review
+
+## Final Verdict
+Choose one:
+- **Pass**
+- **Pass with fixes**
+- **Needs another review**
+- **Not ready for sign-off**
+
+Follow with a one-sentence reason.
+
+## Summary
+Include:
+- total issues
+- critical count
+- high count
+- medium count
+- low count
+- scope reviewed
+- environment/platform
+
+## Top Risks
+List the 3 most important risks in ranked order.
+Each risk should explain impact in one short paragraph.
+
+## Detailed Findings
+Present issues as structured issue cards.
+
+## Recommended Fix Order
+Group recommendations into:
+1. Must fix before sign-off
+2. Should fix in current sprint
+3. Can defer
+
+## Optional Appendix
+If helpful, include:
+- assumptions
+- unmatched states
+- missing inputs
+- Figma annotation text
+
+---
+
+## Issue Card Template
+Use this exact structure for each finding:
+
+### Issue {index} — {short title}
+- **Severity:** {Critical | High | Medium | Low}
+- **Area:** {screen/section/component}
+- **Type:** {Layout | Visual | Copy | State | Interaction | Accessibility}
+- **Platform:** {iOS | Android | Web | Desktop}
+
+**Observed**  
+Describe the current shipped behavior or appearance precisely.
+
+**Expected**  
+Describe the approved Figma intent or expected design behavior.
+
+**Impact**  
+Explain why this matters for hierarchy, usability, trust, clarity, conversion, or consistency.
+
+**Recommendation**  
+Describe the most likely fix in implementation terms.
+
+**Evidence**  
+- Figma reference: {frame name / link / screenshot note}
+- Production reference: {URL / screenshot note}
+
+---
+
+## Writing Rules
+- Write like a senior product designer speaking to engineering.
+- Do not use vague phrases like "feels off" or "not quite right."
+- Be concrete about direction, spacing, hierarchy, alignment, state, and behavior.
+- Do not overwhelm with minor details before surfacing the major issues.
+- Avoid accusatory language. Use neutral phrasing such as "current implementation differs from the approved design intent."
+- Prefer strong observations over speculative guesses.
+
+---
+
+## Figma Annotation Output Mode
+If the user asks for Figma-ready comments, append this section after the main report:
+
+## Figma Annotation Notes
+For each issue, output:
+- **Tag:** #{index}
+- **Frame/Location:** {where to place the note}
+- **Comment:** concise annotation text ready to paste into Figma
+- **Severity:** {level}
+
+---
+
+## HTML Report Guidance
+If asked to generate HTML, use this page structure:
+- header with title, verdict, metadata
+- summary cards by severity
+- top risks section
+- issue list with side-by-side evidence slots
+- recommendations section
+- appendix for notes and annotation text
+
+The HTML should prioritize readability for designers and engineers reviewing together.
+
+---
+
+## Prompt Starter
+Use the following as the task prompt body when invoking the skill:
+
+"Review the shipped implementation against the approved Figma design and generate a design acceptance report. Compare layout, visual hierarchy, copy, component states, interaction expectations, and accessibility cues. Prioritize the most important issues first. For each issue, include severity, area, observed behavior, expected design intent, impact, recommendation, and evidence. Keep the tone neutral, concrete, and developer-friendly. End with a clear sign-off verdict and recommended fix order."

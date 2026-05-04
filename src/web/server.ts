@@ -265,6 +265,7 @@ app.post('/api/ai/compare', upload.fields([
           figmaUrl: !figmaScreenshot ? figmaUrl : undefined,
           figmaScreenshot: figmaScreenshot || undefined,
           options: {
+            ai: false, // 截图阶段不触发 AI 分析，避免重复
             output: {
               dir: jobOutputDir,
               formats: ['markdown'],

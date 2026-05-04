@@ -248,22 +248,35 @@ export class AIAnalyzer {
       ],
     };
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.config.apiKey}`,
-      },
-      body: JSON.stringify(body),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 180_000); // 3 分钟超时
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`AI API 请求失败 (${response.status}): ${errText}`);
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.config.apiKey}`,
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`AI API 请求失败 (${response.status}): ${errText}`);
+      }
+
+      const data = await response.json() as any;
+      return data.choices?.[0]?.message?.content || '';
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        throw new Error('AI API 请求超时（3分钟），请检查网络连接或减小图片尺寸后重试');
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeout);
     }
-
-    const data = await response.json() as any;
-    return data.choices?.[0]?.message?.content || '';
   }
 
   /**
@@ -311,25 +324,39 @@ export class AIAnalyzer {
       ],
     };
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.config.apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify(body),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 180_000); // 3 分钟超时
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Claude API 请求失败 (${response.status}): ${errText}`);
+    try {
+      console.log(`🤖 调用 Claude API: ${url}, model: ${this.config.model}`);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': this.config.apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Claude API 请求失败 (${response.status}): ${errText}`);
+      }
+
+      const data = await response.json() as any;
+      // Claude 返回格式: { content: [{ type: 'text', text: '...' }] }
+      const textBlock = data.content?.find((block: any) => block.type === 'text');
+      return textBlock?.text || '';
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        throw new Error('AI API 请求超时（3分钟），请检查网络连接或减小图片尺寸后重试');
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeout);
     }
-
-    const data = await response.json() as any;
-    // Claude 返回格式: { content: [{ type: 'text', text: '...' }] }
-    const textBlock = data.content?.find((block: any) => block.type === 'text');
-    return textBlock?.text || '';
   }
 
   /**
