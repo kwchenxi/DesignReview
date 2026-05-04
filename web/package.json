@@ -1,0 +1,36 @@
+{
+  "name": "design-review-public",
+  "version": "1.0.0",
+  "description": "公开版设计还原度检查工具 - 支持AI算法对比，可部署到 Vercel",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/web/server.ts",
+    "start": "node dist/web/server.js",
+    "vercel-build": "tsc"
+  },
+  "keywords": [
+    "design-review",
+    "visual-diff",
+    "ai-analysis"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.1.0",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "multer": "^1.4.5-lts.1",
+    "pixelmatch": "^5.3.0",
+    "pngjs": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/pixelmatch": "^5.2.6",
+    "@types/pngjs": "^6.0.5",
+    "@vercel/node": "^3.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.3.0"
+  }
+}

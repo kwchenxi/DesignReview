@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Design Review - 设计还原度检查</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="page-header">
+    <div class="container">
+      <div class="logo-mark">D</div>
+      <div class="logo-text">Design<span>Review</span><span class="logo-sub">/ 设计还原度检查</span></div>
+    </div>
+  </header>
+
+  <div class="main-content">
+    <!-- 分析模式切换 -->
+    <div class="mode-segment">
+      <button type="button" class="mode-option active" data-mode="ai" onclick="switchMode('ai')">
+        <span class="mode-icon">🤖</span>
+        <span>AI 分析</span>
+        <span class="mode-tag">消耗 Token</span>
+      </button>
+      <button type="button" class="mode-option" data-mode="algorithm" onclick="switchMode('algorithm')">
+        <span class="mode-icon">⚡</span>
+        <span>算法分析</span>
+        <span class="mode-tag">免费</span>
+      </button>
+    </div>
+
+    <!-- AI 设置面板 -->
+    <div class="ai-settings" id="aiSettings">
+      <div class="ai-settings-title" onclick="toggleAISettings()">
+        AI 分析配置
+        <span class="ai-status" id="aiStatus"><span class="ai-status-dot"></span><span id="aiStatusText">检测中...</span></span>
+        <span id="aiToggleArrow">▶</span>
+      </div>
+      <div id="aiFieldsBody">
+        <div class="ai-field">
+          <label>API Key</label>
+          <input type="password" id="aiApiKey" placeholder="sk-..." />
+          <div class="hint">支持 OpenAI、DeepSeek、Claude 等</div>
+        </div>
+        <div class="ai-field">
+          <label>API Base URL</label>
+          <input type="text" id="aiApiBase" value="https://api.openai.com/v1" placeholder="https://api.openai.com/v1" />
+          <div class="hint">OpenAI: https://api.openai.com/v1 | Claude: https://api.anthropic.com</div>
+        </div>
+        <div class="ai-field">
+          <label>模型</label>
+          <select id="aiModel">
+            <option value="claude-sonnet-4-20250514" selected>Claude Sonnet 4</option>
+            <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
+            <option value="gpt-4o">GPT-4o</option>
+            <option value="gpt-4o-mini">GPT-4o Mini</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <form id="compareForm" enctype="multipart/form-data">
+      <div class="upload-grid">
+        <div class="upload-card" id="pageCard">
+          <div class="upload-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5a17.92 17.92 0 01-8.716-2.247m0 0A8.966 8.966 0 013 12c0-1.264.26-2.466.733-3.558" /></svg>
+          </div>
+          <h3>线上页面</h3>
+          <p>上传页面截图</p>
+          <input type="file" id="pageFile" name="pageScreenshot" accept="image/*" />
+          <button type="button" class="btn-select" onclick="document.getElementById('pageFile').click()">选择截图</button>
+          <div class="file-name" id="pageFileName"></div>
+          <img class="preview-img" id="pagePreview" />
+        </div>
+
+        <div class="upload-card" id="figmaCard">
+          <div class="upload-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" /></svg>
+          </div>
+          <h3>设计稿</h3>
+          <p>上传 Figma 设计稿截图</p>
+          <input type="file" id="figmaFile" name="figmaScreenshot" accept="image/*" />
+          <button type="button" class="btn-select" onclick="document.getElementById('figmaFile').click()">选择截图</button>
+          <div class="file-name" id="figmaFileName"></div>
+          <img class="preview-img" id="figmaPreview" />
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary" id="submitBtn">开始检查</button>
+    </form>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p id="loadingText">正在对比分析中，请稍候...</p>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <div class="result-section" id="resultSection">
+      <div class="result-header">
+        <div class="score-wrapper" id="scoreWrapper">
+          <div class="score-big" id="resultScore">--</div>
+        </div>
+        <div class="result-meta">
+          <h2>还原度评分</h2>
+          <p id="resultSummary"></p>
+        </div>
+      </div>
+      <div class="stats-row" id="resultStats"></div>
+      <div class="result-actions">
+        <button type="button" class="open-report-btn" id="reportBtn" onclick="showReport()">
+          查看完整报告
+        </button>
+        <button type="button" class="btn-reset" onclick="resetForm()">重新检查</button>
+      </div>
+    </div>
+
+    <!-- 报告 iframe 容器 -->
+    <div class="report-frame-container" id="reportFrameContainer" style="display:none;">
+      <div class="report-frame-header">
+        <h3>检查报告</h3>
+        <button type="button" class="btn-close-report" onclick="closeReport()">✕ 关闭报告</button>
+      </div>
+      <iframe id="reportFrame" class="report-frame"></iframe>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
