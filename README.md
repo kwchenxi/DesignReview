@@ -8,25 +8,17 @@
 
 ### 1. Claude Code Skill（推荐）
 
-只需要下载一个文件：[skill/SKILL.md](skill/SKILL.md)
-
-**安装方式一：命令行（推荐）**
+需要先 clone 本仓库，然后在 Claude Code 中使用。
 
 ```bash
-mkdir -p .claude/commands
-curl -o .claude/commands/design-review.md https://raw.githubusercontent.com/kwchenxi/DesignReview/main/skill/SKILL.md
+git clone https://github.com/kwchenxi/DesignReview.git
+cd DesignReview
+npm install
 ```
 
-**安装方式二：手动下载**
+Skill 文件已内置在 `.claude/commands/` 目录下，clone 后直接可用。
 
-1. 点击打开 [skill/SKILL.md](skill/SKILL.md)
-2. 点击页面右上角的 **Download raw file** 按钮（↓ 图标）
-3. 在你的项目里创建 `.claude/commands/` 目录
-4. 把下载的文件放进去，重命名为 `design-review.md`
-
-**使用：**
-
-在 Claude Code 中输入 `/design-review`，按提示上传截图即可。
+**使用：** 在 Claude Code 中输入 `/design-review`，按提示上传截图即可。
 
 ---
 
@@ -67,7 +59,7 @@ npx ts-node src/cli.ts check -p 页面截图.png -g 设计稿截图.png --ai
 ```
 DesignReview/
 ├── skill/
-│   └── SKILL.md          ← Claude Code Skill 文件（下载这个即可）
+│   └── SKILL.md          ← Claude Code Skill 指令文件
 ├── web/                  ← 在线工具源码（Vercel 部署）
 │   ├── api/              ← Serverless 函数入口
 │   ├── public/           ← 前端页面
