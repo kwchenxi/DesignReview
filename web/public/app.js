@@ -174,9 +174,12 @@ form.addEventListener('submit', async (e) => {
     if (data.minorCount) statsEl.innerHTML += '<span class="stat-chip minor"><span class="stat-dot"></span>次要 ' + data.minorCount + '</span>';
     if (data.suggestionCount) statsEl.innerHTML += '<span class="stat-chip suggestion"><span class="stat-dot"></span>建议 ' + data.suggestionCount + '</span>';
 
-    // 保存报告 HTML
+    // 保存报告 HTML（正确解码 UTF-8 中文）
     if (data.reportHtml) {
-      lastReportHtml = atob(data.reportHtml);
+      const binaryStr = atob(data.reportHtml);
+      const bytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+      lastReportHtml = new TextDecoder('utf-8').decode(bytes);
     }
 
     resultSection.classList.add('visible');
