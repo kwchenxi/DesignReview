@@ -6,7 +6,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
 
 :root {
-  /* Palette — Zinc/Slate base, Emerald accent */
+  /* Palette — Zinc/Slate base, #007AFF accent */
   --bg: #f9fafb;
   --surface: #ffffff;
   --surface-dim: rgba(255,255,255,.65);
@@ -15,10 +15,10 @@
   --text: #18181b;
   --text-secondary: #71717a;
   --text-tertiary: #a1a1aa;
-  --accent: #11998e;
-  --accent-hover: #0e857c;
-  --accent-light: rgba(17,153,142,.08);
-  --accent-glow: rgba(17,153,142,.15);
+  --accent: #007AFF;
+  --accent-hover: #006AE0;
+  --accent-light: rgba(0,122,255,.08);
+  --accent-glow: rgba(0,122,255,.15);
   --critical: #dc2626;
   --critical-bg: rgba(220,38,38,.06);
   --major: #ea580c;
@@ -98,7 +98,7 @@ body::after {
   display: flex; align-items: center; justify-content: center;
   color: #fff; font-weight: 700; font-size: 15px;
   font-family: 'Geist Mono', monospace;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 2px 8px rgba(17,153,142,.25);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 2px 8px rgba(0,122,255,.25);
 }
 .logo-text {
   font-size: 15px; font-weight: 600; color: var(--text);
@@ -157,7 +157,7 @@ body::after {
 .mode-option:hover { color: var(--text); background: var(--accent-light); }
 .mode-option.active {
   background: var(--accent); color: white;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 2px 8px rgba(17,153,142,.2);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 2px 8px rgba(0,122,255,.2);
 }
 .mode-option .mode-icon { display: flex; align-items: center; }
 .mode-option .mode-icon svg { width: 16px; height: 16px; }
@@ -305,12 +305,12 @@ body::after {
   font-family: inherit; font-size: 15px; font-weight: 600;
   cursor: pointer; letter-spacing: -0.01em;
   transition: all var(--duration-normal) var(--ease-out-expo);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 4px 16px rgba(17,153,142,.18);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 4px 16px rgba(0,122,255,.18);
   animation: fadeUp var(--duration-slow) var(--ease-out-expo) .3s both;
 }
 .btn-primary:hover {
   background: var(--accent-hover);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 8px 28px rgba(17,153,142,.22);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 8px 28px rgba(0,122,255,.22);
   transform: translateY(-1px);
 }
 .btn-primary:active { transform: scale(.98) translateY(0); }
@@ -452,11 +452,11 @@ body::after {
   font-family: inherit; font-weight: 600; font-size: 14px;
   cursor: pointer;
   transition: all var(--duration-normal) var(--ease-out-expo);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 4px 12px rgba(17,153,142,.15);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 4px 12px rgba(0,122,255,.15);
 }
 .open-report-btn:hover {
   background: var(--accent-hover);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 6px 20px rgba(17,153,142,.2);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 6px 20px rgba(0,122,255,.2);
   transform: translateY(-1px);
 }
 .open-report-btn:active { transform: scale(.98); }
