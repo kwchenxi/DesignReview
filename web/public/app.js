@@ -163,12 +163,14 @@ form.addEventListener('submit', async (e) => {
     if (data.minorCount) statsEl.innerHTML += '<span class="stat-chip minor"><span class="stat-dot"></span>次要 ' + data.minorCount + '</span>';
     if (data.suggestionCount) statsEl.innerHTML += '<span class="stat-chip suggestion"><span class="stat-dot"></span>建议 ' + data.suggestionCount + '</span>';
 
-    // Report HTML (UTF-8 base64 decode)
+    // Report HTML (UTF-8 base64 decode) — 直接在新页签打开
     if (data.reportHtml) {
       const binaryStr = atob(data.reportHtml);
       const bytes = new Uint8Array(binaryStr.length);
       for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
       lastReportHtml = new TextDecoder('utf-8').decode(bytes);
+      const blob = new Blob([lastReportHtml], { type: 'text/html;charset=utf-8' });
+      window.open(URL.createObjectURL(blob), '_blank');
     }
 
     resultSection.classList.add('visible');
