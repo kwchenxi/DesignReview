@@ -8,15 +8,21 @@
 
 ### 1. Claude Code Skill（推荐）
 
-将 `skill/SKILL.md` 放入你的 Claude Code 项目即可通过命令调用。
+只需要下载一个文件：[skill/SKILL.md](skill/SKILL.md)
 
-**安装：**
+**安装方式一：命令行（推荐）**
 
 ```bash
+mkdir -p .claude/commands
 curl -o .claude/commands/design-review.md https://raw.githubusercontent.com/kwchenxi/DesignReview/main/skill/SKILL.md
 ```
 
-或者手动：打开 [skill/SKILL.md](skill/SKILL.md) → 下载 → 放到你项目的 `.claude/commands/` 目录下。
+**安装方式二：手动下载**
+
+1. 点击打开 [skill/SKILL.md](skill/SKILL.md)
+2. 点击页面右上角的 **Download raw file** 按钮（↓ 图标）
+3. 在你的项目里创建 `.claude/commands/` 目录
+4. 把下载的文件放进去，重命名为 `design-review.md`
 
 **使用：**
 
