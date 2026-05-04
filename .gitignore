@@ -8,9 +8,18 @@ screenshots/
 *.tsbuildinfo
 
 # 个人配置（不提交）
-.claude/settings*
+.claude/
 .codebuddy/
+.design-spec-cache/
 design-review-output/
+
+# 杂项文档（仅本地使用）
+PORT_USAGE.md
+PROJECT_COMPARISON.md
+README-PORTS.md
+manage.sh
+start-both.sh
+设计审查指引.md
 
 # OS 文件
 *.command
