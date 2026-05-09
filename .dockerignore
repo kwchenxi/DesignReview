@@ -1,0 +1,17 @@
+node_modules
+dist
+output
+uploads
+screenshots
+.claude
+.codebuddy
+.design-spec-cache
+design-review-output
+.git
+*.md
+.env
+design-implementation-review
+manage.sh
+start-both.sh
+web
+skill

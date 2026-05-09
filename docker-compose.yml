@@ -1,0 +1,15 @@
+services:
+  design-review:
+    build: .
+    ports:
+      - "3456:3456"
+    environment:
+      - AI_API_KEY=${AI_API_KEY}
+      - AI_API_BASE=${AI_API_BASE:-https://api.openai.com/v1}
+      - AI_MODEL=${AI_MODEL:-gpt-4o}
+      - AI_PROVIDER=${AI_PROVIDER:-openai}
+      - FIGMA_ACCESS_TOKEN=${FIGMA_ACCESS_TOKEN}
+    volumes:
+      - ./output:/app/output
+      - ./uploads:/app/uploads
+    restart: unless-stopped
