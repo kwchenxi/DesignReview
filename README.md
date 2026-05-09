@@ -29,7 +29,7 @@ Skill 文件已内置在 `.claude/commands/` 目录下，clone 后直接可用�
 - 支持算法分析（免费、无需配置）
 - 支持 AI 分析（自行配置 API Key，Key 只存浏览器本地）
 
-**访问地址：** [design-review-weld.vercel.app](https://design-review-weld.vercel.app)
+**访问地址：** [design-review-roan.vercel.app](https://design-review-roan.vercel.app)
 
 ---
 
