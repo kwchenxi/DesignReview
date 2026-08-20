@@ -37,16 +37,9 @@ try {
   }
 } catch { /* 忽略清理失败 */ }
 
-// multer 配置
-const storage = multer.diskStorage({
-  destination: (_req: any, _file: any, cb: any) => cb(null, UPLOAD_DIR),
-  filename: (_req: any, file: any, cb: any) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
-  },
-});
+// multer 配置：使用内存存储，图片仅存在于请求生命周期
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
   fileFilter: (_req: any, file: any, cb: any) => {
     const allowed = ['.png', '.jpg', '.jpeg', '.webp'];
@@ -54,6 +47,24 @@ const upload = multer({
     cb(null, allowed.includes(ext));
   },
 });
+
+/** 将 multer 内存中的文件写入临时目录，返回文件路径 */
+function writeTempFile(file: Express.Multer.File): string {
+  const ext = path.extname(file.originalname);
+  const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+  const filepath = path.join(UPLOAD_DIR, filename);
+  fs.writeFileSync(filepath, file.buffer);
+  return filepath;
+}
+
+/** 清理临时上传文件 */
+function cleanupTempFiles(...filepaths: (string | undefined)[]) {
+  for (const fp of filepaths) {
+    if (fp && fs.existsSync(fp)) {
+      try { fs.unlinkSync(fp); } catch { /* 忽略删除失败 */ }
+    }
+  }
+}
 
 // 静态文件 - 输出目录
 app.use('/output', express.static(OUTPUT_DIR));
@@ -69,6 +80,8 @@ app.post('/api/compare', upload.fields([
   { name: 'pageScreenshot', maxCount: 1 },
   { name: 'figmaScreenshot', maxCount: 1 },
 ]), async (req, res) => {
+  let pageScreenshot: string | undefined;
+  let figmaScreenshot: string | undefined;
   try {
     const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
     const pageUrl = req.body.pageUrl as string | undefined;
@@ -76,14 +89,21 @@ app.post('/api/compare', upload.fields([
     const targetWidthStr = req.body.targetWidth as string | undefined;
     const targetWidth = targetWidthStr ? parseInt(targetWidthStr, 10) : undefined;
 
-    const pageScreenshot = files?.pageScreenshot?.[0]?.path;
-    const figmaScreenshot = files?.figmaScreenshot?.[0]?.path;
+    // 将内存中的文件写入临时磁盘（designReview 需要文件路径）
+    if (files?.pageScreenshot?.[0]) {
+      pageScreenshot = writeTempFile(files.pageScreenshot[0]);
+    }
+    if (files?.figmaScreenshot?.[0]) {
+      figmaScreenshot = writeTempFile(files.figmaScreenshot[0]);
+    }
 
     // 校验
     if (!pageUrl && !pageScreenshot) {
+      cleanupTempFiles(pageScreenshot, figmaScreenshot);
       return res.status(400).json({ error: '请提供线上页面 URL 或上传页面截图' });
     }
     if (!figmaUrl && !figmaScreenshot) {
+      cleanupTempFiles(pageScreenshot, figmaScreenshot);
       return res.status(400).json({ error: '请提供 Figma 链接或上传设计稿截图' });
     }
 
@@ -107,6 +127,9 @@ app.post('/api/compare', upload.fields([
       },
     });
 
+    // 对比完成后立即删除临时上传文件
+    cleanupTempFiles(pageScreenshot, figmaScreenshot);
+
     // 找到 HTML 报告的相对路径
     const htmlFile = report.outputFiles.find(f => f.endsWith('.html'));
     const htmlUrl = htmlFile ? `/output/${jobId}/${path.basename(htmlFile)}` : null;
@@ -123,6 +146,7 @@ app.post('/api/compare', upload.fields([
     });
   } catch (err: any) {
     console.error('对比失败:', err);
+    cleanupTempFiles(pageScreenshot, figmaScreenshot);
     res.status(500).json({ error: err.message });
   }
 });
@@ -232,22 +256,36 @@ app.post('/api/ai/compare', upload.fields([
   { name: 'pageScreenshot', maxCount: 1 },
   { name: 'figmaScreenshot', maxCount: 1 },
 ]), async (req, res) => {
+  let uploadedPagePath: string | undefined;
+  let uploadedFigmaPath: string | undefined;
   try {
     const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
     const pageUrl = req.body.pageUrl as string | undefined;
     const figmaUrl = req.body.figmaUrl as string | undefined;
-    let pageScreenshot = files?.pageScreenshot?.[0]?.path;
-    let figmaScreenshot = files?.figmaScreenshot?.[0]?.path;
+
+    // 将内存中的上传文件写入临时磁盘
+    if (files?.pageScreenshot?.[0]) {
+      uploadedPagePath = writeTempFile(files.pageScreenshot[0]);
+    }
+    if (files?.figmaScreenshot?.[0]) {
+      uploadedFigmaPath = writeTempFile(files.figmaScreenshot[0]);
+    }
+
+    let pageScreenshot = uploadedPagePath;
+    let figmaScreenshot = uploadedFigmaPath;
 
     // 校验：至少要有截图或 URL
     if (!pageUrl && !pageScreenshot) {
+      cleanupTempFiles(uploadedPagePath, uploadedFigmaPath);
       return res.status(400).json({ error: '请提供线上页面 URL 或上传页面截图' });
     }
     if (!figmaUrl && !figmaScreenshot) {
+      cleanupTempFiles(uploadedPagePath, uploadedFigmaPath);
       return res.status(400).json({ error: '请提供 Figma 链接或上传设计稿截图' });
     }
 
     if (!aiAnalyzer.isConfigured) {
+      cleanupTempFiles(uploadedPagePath, uploadedFigmaPath);
       return res.status(400).json({ error: 'AI API Key 未配置，请在设置中配置后再使用 AI 分析' });
     }
 
@@ -286,6 +324,9 @@ app.post('/api/ai/compare', upload.fields([
         console.error('截图失败:', captureErr.message);
       }
     }
+
+    // AI 分析完成后立即删除上传的临时文件
+    cleanupTempFiles(uploadedPagePath, uploadedFigmaPath);
 
     if (!pageScreenshot) {
       return res.status(400).json({ error: '无法获取页面截图，请直接上传截图' });
@@ -361,6 +402,7 @@ app.post('/api/ai/compare', upload.fields([
     });
   } catch (err: any) {
     console.error('AI 分析失败:', err);
+    cleanupTempFiles(uploadedPagePath, uploadedFigmaPath);
     res.status(500).json({ error: err.message });
   }
 });
@@ -813,10 +855,8 @@ function getHomePage(): string {
       border-radius: var(--glass-radius);
       padding: 20px 24px;
       margin-bottom: 20px;
-      display: none;
       box-shadow: var(--glass-shadow);
     }
-    .ai-settings.visible { display: block; }
     .ai-settings-title {
       font-size: 14px;
       font-weight: 600;
@@ -1027,7 +1067,7 @@ function getHomePage(): string {
       document.querySelectorAll('.mode-option').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.mode === mode);
       });
-      document.getElementById('aiSettings').classList.toggle('visible', mode === 'ai');
+      // AI 设置面板始终可见，仅内容可折叠
 
       // AI 模式下设备宽度选择仍可用
       // URL 输入框在两种模式下都可用
@@ -1047,18 +1087,14 @@ function getHomePage(): string {
         if (data.configured) {
           statusEl.className = 'ai-status ok';
           statusText.textContent = '已配置 (' + data.model + ')';
-          // 已配置则折叠
-          aiSettingsExpanded = false;
-          document.getElementById('aiFieldsBody').style.display = 'none';
-          document.getElementById('aiToggleArrow').textContent = '▶';
         } else {
           statusEl.className = 'ai-status no';
           statusText.textContent = '未配置';
-          // 未配置则展开引导用户填写
-          aiSettingsExpanded = true;
-          document.getElementById('aiFieldsBody').style.display = 'block';
-          document.getElementById('aiToggleArrow').textContent = '▼';
         }
+        // 无论是否已配置，默认都折叠内容
+        aiSettingsExpanded = false;
+        document.getElementById('aiFieldsBody').style.display = 'none';
+        document.getElementById('aiToggleArrow').textContent = '▶';
       } catch {
         document.getElementById('aiStatusText').textContent = '检测失败';
       }
